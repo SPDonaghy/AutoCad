@@ -157,6 +157,24 @@ public class Main extends Application {
 			//cursor will be a crosshair when mouse is on the drawing board (black section)
 			scene.setCursor(Cursor.CROSSHAIR);
 
+			//Delete Function
+			scene.setOnKeyPressed(e -> {
+				if ((e.getCode() == KeyCode.DELETE)||(e.getCode() == KeyCode.BACK_SPACE)) {
+					
+					for(Shape shape:shapes){
+
+						if(shape instanceof DraftLine){
+							if(((DraftLine) shape).isSelected()){
+								shapes.remove(shape);
+								drawingBoard.getChildren().remove(shape);
+							}
+
+						}
+					}
+
+				}
+			});
+
 			primaryStage.setTitle("RadCAD");
 			primaryStage.setScene(scene);
 			primaryStage.show();
@@ -167,12 +185,7 @@ public class Main extends Application {
 			e.printStackTrace();
 		}
 	}
-	//Inner Interfaces
-	interface Highlightable{
-
-		public abstract void highlight();
-
-	}
+	
 	//Inner Classes
 	/**
 	 * The points class describe points in the drawing
@@ -184,7 +197,7 @@ public class Main extends Application {
 	 * @author Sean Donaghy
 	 *
 	 */
-	public class Point extends Shape implements Highlightable{
+	public class Point extends Shape {
 		
 		private static final int RADIUS = 2;
 		private Circle pointCircle;
@@ -196,10 +209,6 @@ public class Main extends Application {
 			this.x = x;
 			this.y = y;
 			
-		}
-		@Override
-		public void highlight(){
-
 		}
 		public boolean isSelected() {
 			return isSelected;
@@ -240,7 +249,7 @@ public class Main extends Application {
 						     Math.pow(this.y-other.getY(),2));
 		}
 	}
-	public class DraftLine extends Line implements Highlightable{
+	public class DraftLine extends Line{
 		
 		private Point start,end,mid;
 		private double angle;
@@ -256,12 +265,6 @@ public class Main extends Application {
 			this.setStroke(LINE_COLOR);
 			this.setStrokeWidth(STROKE_WIDTH);
 		}
-
-		@Override
-		public void highlight(){
-
-		}
-
 		public Point getStart() {
 			return this.start;
 		}
@@ -477,6 +480,8 @@ public class Main extends Application {
 					
 					selectedLine = (DraftLine) e.getSource();
 					selectedLine.setSelected(true);
+					selectedLine.getStart().setSelected(true);
+					selectedLine.getEnd().setSelected(true);
 					e.consume();
 				}
 				else if(e.getSource() instanceof Point){
