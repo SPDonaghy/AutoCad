@@ -126,10 +126,19 @@ public class Main extends Application {
 
 	public class DraftLine extends Line {
 		
-		/*
-		public DraftLine(double start, double end){
+		private Point start,end, mid;
+		private double angle;
+		private boolean isSelected;
+		private Color color;
 
-		}*/
+		public DraftLine(double startX, double startY, double endX, double endY){
+			super(startX,startY,endX,endY);
+
+			start = new Point(startX,startY);
+			end = new Point(endX,endY);
+			isSelected = false;
+			
+		}
 	}
 	/**
 	 * The MousePressEventHandler will excute multiple possible actions, depending on the tool selected
