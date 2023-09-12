@@ -1,33 +1,39 @@
 package application;
 /*
  * NOTES
- * the next step for this project is a complete restructure how everything works
- * I need to make a draftLine class that extends Line and each draft line will have 
- * 2 points, isSelected boolean, angle, length, and color	
+ * 	
  */
 import javafx.application.Application;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.*;
+import javafx.scene.Cursor;
 import javafx.scene.Group;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.text.*;
 import javafx.event.*;
 import javafx.geometry.Pos;
-import javafx.scene.control.TextField;
 import javafx.geometry.Insets;
 import java.util.*;
 import javafx.scene.input.*;
 
 
 public class Main extends Application {
-	private static int HEIGHT = 700;
-	private static int WIDTH = 1000;
-	
-	
+
+	//Final Values
+	private static final int HEIGHT = 700;
+	private static final int WIDTH = 1000;
+	private static final int STROKE_WIDTH = 2;
+	private final int SNAP = 10;
+	private static final Color BACKGROUND_COLOR = Color.BLACK;
+	private static final Color LINE_COLOR = Color.WHITE;
+	private static final Color SELECTED_COLOR = Color.LIGHTBLUE;
+
+
+	//Elements
+	private Scene scene;
 	private VBox topPane;
 	private HBox toolSelectionRow;
 	private RadioButton line,box,circle,arc,select;
@@ -35,28 +41,27 @@ public class Main extends Application {
 	private Pane drawingBoard;
 	private Rectangle background;
 	private Line vertical,horizontal;
-	private static Color backgroundColor = Color.BLACK;
 	private BorderPane root;
 	private Text dimension;
-	private int SNAP = 10;
 	
+	//Object Lists
 	private ArrayList<Shape> shapes;
 	private ArrayList<DraftLine> lines;
 	private ArrayList<Point> points;
 
+	//Event Handlers
 	private MousePressEventHandler mpeh = new MousePressEventHandler();
 	private MouseDragEventHandler mdeh = new MouseDragEventHandler();
 	private MouseReleaseEventHandler mreh = new MouseReleaseEventHandler();
+
 	
 	@Override
 	public void start(Stage primaryStage) {
 		
 		try {
 			
-			//build the tool selection pane
+			//Tool selection pane
 			Text toolsTitle = new Text("Tools");
-			
-			//create a toggle group for the tool select buttons
 			toolSelection = new ToggleGroup();
 			
 			//initialize tool selection radio buttons
@@ -89,23 +94,53 @@ public class Main extends Application {
 			//format the top pane
 			topPane.setPadding(new Insets(10));
 			topPane.setAlignment(Pos.CENTER);
+
 			
-			//build the drawingBoard
+			//DrawingBoard
 			drawingBoard = new Pane();
 			background = new Rectangle(0,0,WIDTH,HEIGHT);
-			background.setFill(backgroundColor);
-			
-			drawingBoard.setOnMousePressed(mpeh);
-			drawingBoard.setOnMouseDragged(mdeh);
-			drawingBoard.setOnMouseReleased(mreh);
-			
-			//create axis gridlines
+			background.setFill(BACKGROUND_COLOR);
+
+			//Axis gridlines
 			vertical = new Line(WIDTH/2,0,WIDTH/2,HEIGHT);
 			vertical.setStroke(Color.GRAY);
 			horizontal = new Line(0,HEIGHT/2,WIDTH,HEIGHT/2);
 			horizontal.setStroke(Color.GRAY);
 			
 			drawingBoard.getChildren().addAll(background,vertical,horizontal);
+
+			//Event Handlers
+
+			//Cursor will change from crosshair to deafault when the mouse moves into the top pane
+			topPane.hoverProperty().addListener((observable) -> {
+                
+				scene.setCursor(Cursor.DEFAULT);
+				
+				//Restore any hovered over shapes to default stroke width
+				for(Shape shape:shapes){
+					if(shape.getStrokeWidth()>STROKE_WIDTH)
+						shape.setStrokeWidth(STROKE_WIDTH);
+				}
+
+        	});
+
+			//When the cursor moves off of a shape and onto the background, all highlighted lines should be unhighlighted
+			//and the cursor restores to crosshair
+			background.hoverProperty().addListener((observable) -> {
+                
+				scene.setCursor(Cursor.CROSSHAIR);
+				
+				//Restore any hovered over shapes to default stroke width
+				for(Shape shape:shapes){
+					if(shape.getStrokeWidth()>STROKE_WIDTH)
+						shape.setStrokeWidth(STROKE_WIDTH);
+				}
+
+        	});
+			
+			drawingBoard.setOnMousePressed(mpeh);
+			drawingBoard.setOnMouseDragged(mdeh);
+			drawingBoard.setOnMouseReleased(mreh);
 			
 			//initialize the shapes and lines arrays
 			shapes = new ArrayList<Shape>();
@@ -116,7 +151,12 @@ public class Main extends Application {
 			root.setTop(topPane);
 			root.setCenter(drawingBoard);
 		
-			Scene scene = new Scene(root,WIDTH,HEIGHT);
+			scene = new Scene(root,WIDTH,HEIGHT);
+			
+			//set cursor to crosshair
+			//cursor will be a crosshair when mouse is on the drawing board (black section)
+			scene.setCursor(Cursor.CROSSHAIR);
+
 			primaryStage.setTitle("RadCAD");
 			primaryStage.setScene(scene);
 			primaryStage.show();
@@ -141,6 +181,7 @@ public class Main extends Application {
 		
 		private static int radius = 2;
 		private Circle pointCircle;
+		private boolean isSelected;
 		private double x,y;
 		
 		public Point(double x,double y) {
@@ -149,7 +190,18 @@ public class Main extends Application {
 			this.y = y;
 			
 		}
-		
+		public boolean isSelected() {
+			return isSelected;
+		}
+		public void setSelected(boolean isSelected) {
+			this.isSelected = isSelected;
+			if (isSelected) {
+				this.setStroke(SELECTED_COLOR);
+			}
+			else{
+				this.setStroke(LINE_COLOR);
+			}
+		}
 		public double getY() {
 			return this.y;
 		}
@@ -165,7 +217,7 @@ public class Main extends Application {
 		public void setCircle(double x,double y) {
 			
 			this.pointCircle = new Circle(x,y,radius);
-			this.pointCircle.setFill(Color.WHITE);
+			this.pointCircle.setFill(LINE_COLOR);
 		}
 		public Circle getCircle() {
 			return this.pointCircle;
@@ -182,7 +234,6 @@ public class Main extends Application {
 		private double angle;
 		private boolean isSelected;
 		private Color color;
-		private static final int LINE_WEIGHT = 2;
 
 		public DraftLine(double startX, double startY, double endX, double endY){
 			super(startX,startY,endX,endY);
@@ -190,9 +241,9 @@ public class Main extends Application {
 			this.start = new Point(startX,startY);
 			this.end = new Point(endX,endY);
 			this.isSelected = false;
-			this.setStroke(Color.WHITE);
+			this.setStroke(LINE_COLOR);
 
-			this.setStrokeWidth(LINE_WEIGHT);
+			this.setStrokeWidth(STROKE_WIDTH);
 		}
 
 		public Point getStart() {
@@ -234,10 +285,10 @@ public class Main extends Application {
 		public void setSelected(boolean isSelected) {
 			this.isSelected = isSelected;
 			if (isSelected) {
-				this.setStroke(Color.LIGHTBLUE);
+				this.setStroke(SELECTED_COLOR);
 			}
 			else{
-				this.setStroke(Color.WHITE);
+				this.setStroke(LINE_COLOR);
 			}
 		}
 
@@ -247,6 +298,61 @@ public class Main extends Application {
 
 		public void setColor(Color color) {
 			this.color = color;
+		}
+	}
+	//Methods
+
+	/**
+	 * This method is used to add any shapes to the Array List shapes
+	 * When a shape is added, an event listener is also added to the shape to check if the mouse is hovering over the shape
+	 * 
+	 * If the mouse is hovering over the shape, while in select mode, the cursor will change to a hand
+	 * @param shapeArgs
+	 */
+	public void addToShapes(Shape ...shapeArgs){
+		
+		for(Shape shape:shapeArgs){
+
+			shapes.add(shape);
+			shape.hoverProperty().addListener((observable) -> {
+                
+				if(select.isSelected()){
+					scene.setCursor(Cursor.HAND);
+					shape.setStrokeWidth(STROKE_WIDTH*2);
+				}
+				
+        	});
+		}
+	}
+	/**
+	 * This method will round a double to the nearest 100th
+	 * @param num
+	 * @return
+	 */
+	public static double round(double num) {
+		
+		double temp = num;
+		temp *= 100;
+		temp = (int)temp;
+		temp /= 100;
+		
+		return temp;
+	}
+	/**
+	 * This method will deselect all drawing entities
+	 */
+	private void deselectAll(){
+
+		//once more entities are implemented they should all be stored in a single array list of type Shape
+		//deselect all Draft Lines
+		for(DraftLine line:lines) {
+			if(line.isSelected())
+				line.setSelected(false);
+		}
+
+		for(Point point:points){
+			if(point.isSelected())
+				point.setSelected(false);
 		}
 	}
 	/**
@@ -310,7 +416,9 @@ public class Main extends Application {
 				
 				//all lines are added to an Array list so that they can be changed
 				lines.add(draftLine);
-				shapes.add(draftLine);
+
+				addToShapes(draftLine, draftLine.getStart());
+				//shapes.add(draftLine);
 				
 				//Add a circle for the start point
 				draftLine.getStart().setCircle(start.getX(),start.getY());
@@ -323,7 +431,7 @@ public class Main extends Application {
 				
 				//add the start point to the Array List points to keep track of all points
 				points.add(draftLine.getStart());
-				shapes.add(draftLine.getStart());
+				//shapes.add(draftLine.getStart());
 
 				drawingBoard.getChildren().add(draftLine.getStart().getCircle());
 			
@@ -332,7 +440,7 @@ public class Main extends Application {
 				
 				//add the line dimension to the drawing
 				dimension = new Text("");
-				dimension.setStroke(Color.WHITE);
+				dimension.setStroke(LINE_COLOR);
 				drawingBoard.getChildren().add(dimension);
 				
 				//the user should also be able to start a new line when they have clicked on a previously drawn line
@@ -370,19 +478,7 @@ public class Main extends Application {
 			}
 
 		}
-		/**
-		 * This method will deselect all drawing entities
-		 */
-		private void deselectAll(){
-
-			//once more entities are implemented they should all be stored in a single array list of type Shape
-			//deselect all Draft Lines
-			for(DraftLine l:lines) {
-	
-				l.setSelected(false);
 		
-			}
-		}
 	}
 	/**
 	 * Mouse Dragged Event Handler
@@ -489,15 +585,7 @@ public class Main extends Application {
 			
 		}
 		
-		public static double round(double num) {
-			
-			double temp = num;
-			temp *= 100;
-			temp = (int)temp;
-			temp /= 100;
-			
-			return temp;
-		}
+
 			
 		
 	}
