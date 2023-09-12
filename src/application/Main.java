@@ -167,6 +167,13 @@ public class Main extends Application {
 			e.printStackTrace();
 		}
 	}
+	//Inner Interfaces
+	interface Highlightable{
+
+		public abstract void highlight();
+
+	}
+	//Inner Classes
 	/**
 	 * The points class describe points in the drawing
 	 * keeping track of the points is useful for snapping to them when drawing
@@ -177,9 +184,9 @@ public class Main extends Application {
 	 * @author Sean Donaghy
 	 *
 	 */
-	public class Point extends Shape{
+	public class Point extends Shape implements Highlightable{
 		
-		private static int radius = 2;
+		private static final int RADIUS = 2;
 		private Circle pointCircle;
 		private boolean isSelected;
 		private double x,y;
@@ -190,16 +197,20 @@ public class Main extends Application {
 			this.y = y;
 			
 		}
+		@Override
+		public void highlight(){
+
+		}
 		public boolean isSelected() {
 			return isSelected;
 		}
 		public void setSelected(boolean isSelected) {
 			this.isSelected = isSelected;
 			if (isSelected) {
-				this.setStroke(SELECTED_COLOR);
+				this.pointCircle.setStroke(SELECTED_COLOR);
 			}
 			else{
-				this.setStroke(LINE_COLOR);
+				this.pointCircle.setStroke(LINE_COLOR);
 			}
 		}
 		public double getY() {
@@ -216,8 +227,9 @@ public class Main extends Application {
 		}
 		public void setCircle(double x,double y) {
 			
-			this.pointCircle = new Circle(x,y,radius);
+			this.pointCircle = new Circle(x,y,RADIUS);
 			this.pointCircle.setFill(LINE_COLOR);
+
 		}
 		public Circle getCircle() {
 			return this.pointCircle;
@@ -228,9 +240,9 @@ public class Main extends Application {
 						     Math.pow(this.y-other.getY(),2));
 		}
 	}
-	public class DraftLine extends Line {
+	public class DraftLine extends Line implements Highlightable{
 		
-		private Point start,end, mid;
+		private Point start,end,mid;
 		private double angle;
 		private boolean isSelected;
 		private Color color;
@@ -242,12 +254,16 @@ public class Main extends Application {
 			this.end = new Point(endX,endY);
 			this.isSelected = false;
 			this.setStroke(LINE_COLOR);
-
 			this.setStrokeWidth(STROKE_WIDTH);
 		}
 
+		@Override
+		public void highlight(){
+
+		}
+
 		public Point getStart() {
-			return start;
+			return this.start;
 		}
 
 		public void setStart(Point start) {
@@ -255,7 +271,7 @@ public class Main extends Application {
 		}
 
 		public Point getEnd() {
-			return end;
+			return this.end;
 		}
 
 		public void setEnd(Point end) {
@@ -263,7 +279,7 @@ public class Main extends Application {
 		}
 
 		public Point getMid() {
-			return mid;
+			return this.mid;
 		}
 
 		public void setMid(Point mid) {
@@ -319,8 +335,7 @@ public class Main extends Application {
 				if(select.isSelected()){
 					scene.setCursor(Cursor.HAND);
 					shape.setStrokeWidth(STROKE_WIDTH*2);
-				}
-				
+				}	
         	});
 		}
 	}
@@ -349,7 +364,7 @@ public class Main extends Application {
 			if(line.isSelected())
 				line.setSelected(false);
 		}
-
+		//Deselect all points
 		for(Point point:points){
 			if(point.isSelected())
 				point.setSelected(false);
@@ -360,7 +375,8 @@ public class Main extends Application {
 	 */
 	public class MousePressEventHandler implements EventHandler<MouseEvent>{
 		
-		private Line selectedLine;
+		private DraftLine selectedLine;
+		private Point selectedPoint;
 		
 		@Override
 		public void handle(MouseEvent e) {
@@ -417,12 +433,11 @@ public class Main extends Application {
 				//all lines are added to an Array list so that they can be changed
 				lines.add(draftLine);
 
-				addToShapes(draftLine, draftLine.getStart());
-				//shapes.add(draftLine);
+				addToShapes(draftLine);
 				
 				//Add a circle for the start point
 				draftLine.getStart().setCircle(start.getX(),start.getY());
-				//start.setCircle(start.getX(),start.getY());
+				addToShapes(draftLine.getStart().getCircle());
 				
 				//the user should be able to start or finish a line on top of a point(point circle)
 				draftLine.getStart().getCircle().setOnMousePressed(mpeh);
@@ -431,7 +446,7 @@ public class Main extends Application {
 				
 				//add the start point to the Array List points to keep track of all points
 				points.add(draftLine.getStart());
-				//shapes.add(draftLine.getStart());
+				
 
 				drawingBoard.getChildren().add(draftLine.getStart().getCircle());
 			
@@ -460,12 +475,16 @@ public class Main extends Application {
 				
 				if(e.getSource() instanceof DraftLine) {
 					
-					DraftLine selectedLine = (DraftLine) e.getSource();
+					selectedLine = (DraftLine) e.getSource();
 					selectedLine.setSelected(true);
-
 					e.consume();
-					
 				}
+				else if(e.getSource() instanceof Point){
+					selectedPoint = (Point) e.getSource();
+					selectedPoint.setSelected(true);
+					e.consume();
+				}
+
 
 				else{
 					deselectAll();
@@ -617,6 +636,8 @@ public class Main extends Application {
 				
 				points.add(endPoint);
 				
+				addToShapes(endPoint.getCircle());
+
 				drawingBoard.getChildren().add(endPoint.getCircle());
 				e.consume();
 			}
