@@ -38,6 +38,7 @@ public class Main extends Application {
 	private static Color backgroundColor = Color.BLACK;
 	private BorderPane root;
 	private Text dimension;
+	private int SNAP = 10;
 	
 	private ArrayList<Shape> shapes;
 	private ArrayList<Line> lines;
@@ -68,7 +69,7 @@ public class Main extends Application {
 				rB.setToggleGroup(toolSelection);
 				//add set on action later
 			}
-			//line is the selected tool be default
+			//line is the selected tool by default
 			line.setSelected(true);
 			
 			//collect together the tool selection radio buttons
@@ -90,23 +91,15 @@ public class Main extends Application {
 			background = new Rectangle(0,0,WIDTH,HEIGHT);
 			background.setFill(backgroundColor);
 			
+			drawingBoard.setOnMousePressed(new MousePressEventHandler());
+			drawingBoard.setOnMouseDragged(new MouseDragEventHandler());
+			drawingBoard.setOnMouseReleased(new MouseReleaseEventHandler());
+			
 			//create axis gridlines
 			vertical = new Line(WIDTH/2,0,WIDTH/2,HEIGHT);
 			vertical.setStroke(Color.GRAY);
 			horizontal = new Line(0,HEIGHT/2,WIDTH,HEIGHT/2);
 			horizontal.setStroke(Color.GRAY);
-			
-			vertical.setOnMousePressed(new MousePressEventHandler());
-			vertical.setOnMouseDragged(new MouseDragEventHandler());
-			vertical.setOnMouseReleased(new MouseReleaseEventHandler());
-			
-			horizontal.setOnMousePressed(new MousePressEventHandler());
-			horizontal.setOnMouseDragged(new MouseDragEventHandler());
-			horizontal.setOnMouseReleased(new MouseReleaseEventHandler());
-			
-			background.setOnMousePressed(new MousePressEventHandler());
-			background.setOnMouseDragged(new MouseDragEventHandler());
-			background.setOnMouseReleased(new MouseReleaseEventHandler());
 			
 			drawingBoard.getChildren().addAll(background,vertical,horizontal);
 			
@@ -120,23 +113,30 @@ public class Main extends Application {
 			root.setCenter(drawingBoard);
 		
 			Scene scene = new Scene(root,WIDTH,HEIGHT);
-			primaryStage.setTitle("SeanCAD");
+			primaryStage.setTitle("RadCAD");
 			primaryStage.setScene(scene);
 			primaryStage.show();
 		} 
-		
 		
 		catch(Exception e) {
 			
 			e.printStackTrace();
 		}
 	}
-	
+
+	public class DraftLine extends Line {
+		
+		/*
+		public DraftLine(double start, double end){
+
+		}*/
+	}
+	/**
+	 * The MousePressEventHandler will excute multiple possible actions, depending on the tool selected
+	 */
 	public class MousePressEventHandler implements EventHandler<MouseEvent>{
-		private static int SNAP = 10;
+		
 		private Line selectedLine;
-		
-		
 		
 		@Override
 		public void handle(MouseEvent e) {
@@ -159,6 +159,7 @@ public class Main extends Application {
 			//if the cursor is close enough to a point on the drawing
 			//the start point of the shape being drawn will snap to that point
 			//the cursor should specifically snap to the point CLOSEST to the cursor AND within SNAP tolerance
+
 			double pointDist = 1_000_000_000;
 			
 			for(int i=0;i<points.size();i++) {
@@ -166,9 +167,11 @@ public class Main extends Application {
 				if(mousePos.getDistance(points.get(i))<SNAP&&(mousePos.getDistance(points.get(i)) < pointDist)) {
 					
 					start = points.get(i);
+					//comparing to the pointDist variable ensures the line snaps to the nearest point within snapping distance
 					pointDist = mousePos.getDistance(points.get(i));
 					nearPoint = true;
 				}
+
 			//if no points are close enough to snap to
 		    //but the cursor is near an axis
 			//the cursor should snap to the axis
@@ -184,7 +187,6 @@ public class Main extends Application {
 				start = new Point(WIDTH/2,mousePos.getY());
 			}
 			
-			//drawingBoard.getChildren().add(dimension);
 					
 			}
 			
@@ -226,6 +228,7 @@ public class Main extends Application {
 			}
 			
 			//Entity Selection Tool
+			//This doesn't work yet
 			if(select.isSelected()) {
 				
 				if(e.getSource() instanceof Line) {
@@ -266,9 +269,6 @@ public class Main extends Application {
 				
 				//start and end points for the line being drawn
 				start = new Point(currentLine.getStartX(),currentLine.getStartY());
-				
-				
-				final int SNAP = 10;
 				
 				//this code block will change the endpoint of the most recently added line to the line Array List
 				
