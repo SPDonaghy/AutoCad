@@ -160,7 +160,7 @@ public class Main extends Application {
 			//Delete Function
 			scene.setOnKeyPressed(e -> {
 				if ((e.getCode() == KeyCode.DELETE)||(e.getCode() == KeyCode.BACK_SPACE)) {
-					
+					/*
 					for(Shape shape:shapes){
 
 						if(shape instanceof DraftLine){
@@ -170,7 +170,22 @@ public class Main extends Application {
 							}
 
 						}
-					}
+					}*/
+					
+					for(int i=0;i<shapes.size();i++){
+
+						if(shapes.get(i) instanceof DraftLine){
+							if(((DraftLine) shapes.get(i)).isSelected()){
+								
+								drawingBoard.getChildren().remove(shapes.get(i));
+								shapes.remove(i);
+								
+							}
+
+						}
+					} 
+					
+					
 
 				}
 			});
@@ -191,8 +206,8 @@ public class Main extends Application {
 	 * The points class describe points in the drawing
 	 * keeping track of the points is useful for snapping to them when drawing
 	 * 
-	 * a point has x and y coordinates
-	 * getDistance() returns the distance between two points
+	 * a point has x and y coordinates and a visual representation as a small circle
+	 *
 	 * 
 	 * @author Sean Donaghy
 	 *
@@ -204,6 +219,11 @@ public class Main extends Application {
 		private boolean isSelected;
 		private double x,y;
 	
+		/**
+		 * General Point Constructor
+		 * @param x x coordinate of the point
+		 * @param y y coordinate of the point
+		 */
 		public Point(double x,double y) {
 			
 			this.x = x;
@@ -212,6 +232,10 @@ public class Main extends Application {
 			this.getChildren().add(this.pointCircle);
 			
 		}
+		/**
+		 * Point copying constructor
+		 * @param point the point to be copied
+		 */
 		public Point (Point point){
 			this.x = point.getX();
 			this.y = point.getY();
@@ -219,9 +243,18 @@ public class Main extends Application {
 			this.getChildren().add(this.pointCircle);
 			
 		}
+		/**
+		 * Returns if the point has been selected by the select tool
+		 * @return
+		 */
 		public boolean isSelected() {
 			return isSelected;
 		}
+		/**
+		 * changes the status of the isSelected data member
+		 * also changes the color of the Point to indicate to the user whether the point is selected or not
+		 * @param isSelected
+		 */
 		public void setSelected(boolean isSelected) {
 			this.isSelected = isSelected;
 			if (isSelected) {
@@ -252,6 +285,11 @@ public class Main extends Application {
 		public Circle getCircle() {
 			return this.pointCircle;
 		}
+		/**
+		 * Returns the distance between two points
+		 * @param other the other point to which the distance is being calculated from the function calling Point
+		 * @return the distance between the two points as a double
+		 */
 		public double getDistance(Point other){
 			
 			return Math.sqrt(Math.pow(this.x-other.getX(),2)+
