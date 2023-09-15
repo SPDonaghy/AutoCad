@@ -197,17 +197,26 @@ public class Main extends Application {
 	 * @author Sean Donaghy
 	 *
 	 */
-	public class Point extends Shape {
+	public class Point extends Group {
 		
 		private static final int RADIUS = 2;
 		private Circle pointCircle;
 		private boolean isSelected;
 		private double x,y;
-		
+	
 		public Point(double x,double y) {
 			
 			this.x = x;
 			this.y = y;
+			this.setCircle(x, y);
+			this.getChildren().add(this.pointCircle);
+			
+		}
+		public Point (Point point){
+			this.x = point.getX();
+			this.y = point.getY();
+			this.setCircle(this.x, this.y);
+			this.getChildren().add(this.pointCircle);
 			
 		}
 		public boolean isSelected() {
@@ -320,7 +329,6 @@ public class Main extends Application {
 		}
 	}
 	//Methods
-
 	/**
 	 * This method is used to add any shapes to the Array List shapes
 	 * When a shape is added, an event listener is also added to the shape to check if the mouse is hovering over the shape
@@ -431,7 +439,11 @@ public class Main extends Application {
 				//this will create a line where both the start and end points are intitially where the mouse
 				//click occurred or if the mouse was close enough to a point, the line will start at that point
 				DraftLine draftLine = new DraftLine(start.getX(),start.getY(),start.getX(),start.getY());
-				draftLine.setStart(start);
+				
+				//The start of the draft line is a new point which is a copy of the start point
+				//A copy is created to avoid adding duplicate children to the scene when the start point of the line is 
+				//on top of another start point from snapping
+				draftLine.setStart(new Point(start));
 				
 				//all lines are added to an Array list so that they can be changed
 				lines.add(draftLine);
@@ -449,9 +461,10 @@ public class Main extends Application {
 				
 				//add the start point to the Array List points to keep track of all points
 				points.add(draftLine.getStart());
+			
 				
 
-				drawingBoard.getChildren().add(draftLine.getStart().getCircle());
+				drawingBoard.getChildren().add(draftLine.getStart());
 			
 				//add the line to the drawing
 				drawingBoard.getChildren().add(draftLine);
