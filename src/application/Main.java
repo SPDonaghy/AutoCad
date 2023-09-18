@@ -161,32 +161,25 @@ public class Main extends Application {
 			scene.setOnKeyPressed(e -> {
 				if ((e.getCode() == KeyCode.DELETE)||(e.getCode() == KeyCode.BACK_SPACE)) {
 					/*
-					for(Shape shape:shapes){
-
-						if(shape instanceof DraftLine){
-							if(((DraftLine) shape).isSelected()){
-								shapes.remove(shape);
-								drawingBoard.getChildren().remove(shape);
-							}
-
-						}
-					}*/
-					
 					for(int i=0;i<shapes.size();i++){
 
-						if(shapes.get(i) instanceof DraftLine){
-							if(((DraftLine) shapes.get(i)).isSelected()){
+						if(shapes.get(i) instanceof DraftLine && ((DraftLine) shapes.get(i)).isSelected()){
 								
-								drawingBoard.getChildren().remove(shapes.get(i));
-								shapes.remove(i);
-								
-							}
+							drawingBoard.getChildren().remove(shapes.get(i));
+							shapes.remove(i);
 
 						}
 					} 
-					
-					
+					*/
+					for(int i=0;i<lines.size();i++){
 
+						if(lines.get(i) instanceof DraftLine && ((DraftLine) lines.get(i)).isSelected()){
+								
+							drawingBoard.getChildren().remove(lines.get(i));
+							lines.remove(i);
+
+						}
+					} 
 				}
 			});
 
@@ -269,12 +262,14 @@ public class Main extends Application {
 		}
 		public void setY(double y) {
 			this.y = y;
+			this.pointCircle.setCenterY(y);
 		}
 		public double getX() {
 			return this.x;
 		}
 		public void setX(double x) {
 			this.x = x;
+			this.pointCircle.setCenterX(x);
 		}
 		public void setCircle(double x,double y) {
 			
@@ -296,22 +291,28 @@ public class Main extends Application {
 						     Math.pow(this.y-other.getY(),2));
 		}
 	}
-	public class DraftLine extends Line{
+	public class DraftLine extends Group{
 		
 		private Point start,end,mid;
+		private Line line;
 		private double angle;
 		private boolean isSelected;
 		private Color color;
 
 		public DraftLine(double startX, double startY, double endX, double endY){
-			super(startX,startY,endX,endY);
-
+			
+			
 			this.start = new Point(startX,startY);
 			this.end = new Point(endX,endY);
 			this.isSelected = false;
-			this.setStroke(LINE_COLOR);
-			this.setStrokeWidth(STROKE_WIDTH);
+			
+			this.line = new Line(startX,startY,endX,endY);
+			this.line.setStroke(LINE_COLOR);
+			this.line.setStrokeWidth(STROKE_WIDTH);
+
+			this.getChildren().addAll(start,end,line);
 		}
+		
 		public Point getStart() {
 			return this.start;
 		}
@@ -351,10 +352,10 @@ public class Main extends Application {
 		public void setSelected(boolean isSelected) {
 			this.isSelected = isSelected;
 			if (isSelected) {
-				this.setStroke(SELECTED_COLOR);
+				this.line.setStroke(SELECTED_COLOR);
 			}
 			else{
-				this.setStroke(LINE_COLOR);
+				this.line.setStroke(LINE_COLOR);
 			}
 		}
 
@@ -364,6 +365,14 @@ public class Main extends Application {
 
 		public void setColor(Color color) {
 			this.color = color;
+		}
+
+		public Line getLine() {
+			return line;
+		}
+
+		public void setLine(Line line) {
+			this.line = line;
 		}
 	}
 	//Methods
@@ -379,6 +388,7 @@ public class Main extends Application {
 		for(Shape shape:shapeArgs){
 
 			shapes.add(shape);
+			
 			shape.hoverProperty().addListener((observable) -> {
                 
 				if(select.isSelected()){
@@ -467,8 +477,7 @@ public class Main extends Application {
 							
 				start = new Point(WIDTH/2,mousePos.getY());
 			}
-			
-					
+				
 			}
 			
 			//Line Creation Tool
@@ -481,28 +490,18 @@ public class Main extends Application {
 				//The start of the draft line is a new point which is a copy of the start point
 				//A copy is created to avoid adding duplicate children to the scene when the start point of the line is 
 				//on top of another start point from snapping
-				draftLine.setStart(new Point(start));
 				
 				//all lines are added to an Array list so that they can be changed
 				lines.add(draftLine);
 
-				addToShapes(draftLine);
+				addToShapes(draftLine.getLine());
 				
 				//Add a circle for the start point
-				draftLine.getStart().setCircle(start.getX(),start.getY());
 				addToShapes(draftLine.getStart().getCircle());
-				
-				//the user should be able to start or finish a line on top of a point(point circle)
-				draftLine.getStart().getCircle().setOnMousePressed(mpeh);
-				draftLine.getStart().getCircle().setOnMouseDragged(mdeh);
-				draftLine.getStart().getCircle().setOnMouseReleased(mreh);
-				
+	
 				//add the start point to the Array List points to keep track of all points
 				points.add(draftLine.getStart());
-			
-				
-
-				drawingBoard.getChildren().add(draftLine.getStart());
+				//points.add(draftLine.getEnd());
 			
 				//add the line to the drawing
 				drawingBoard.getChildren().add(draftLine);
@@ -516,6 +515,7 @@ public class Main extends Application {
 				draftLine.setOnMousePressed(mpeh);
 				draftLine.setOnMouseDragged(mdeh);
 				
+				//could be added to addToShapes()
 				for(Shape s:shapes){
 					s.setOnMousePressed(mpeh);
 					s.setOnMouseDragged(mdeh);
@@ -568,7 +568,7 @@ public class Main extends Application {
 	public class MouseDragEventHandler implements EventHandler<MouseEvent>{
 		
 		private static int dimPad = 15;
-		private Line currentLine;
+		private DraftLine currentLine;
 		private Point start,end;
 		private double dimVal;
 		@Override
@@ -578,42 +578,52 @@ public class Main extends Application {
 			if(line.isSelected()) {
 				
 				//the most recent line added to the drawing
+				//currentLine is a DraftLine Group object
 				currentLine = lines.get(lines.size()-1);
 				
 				//start and end points for the line being drawn
-				start = new Point(currentLine.getStartX(),currentLine.getStartY());
+				start = currentLine.getStart();
+				end = currentLine.getEnd();
 				
 				//this code block will change the endpoint of the most recently added line to the line Array List
 				
 				//this line will check if the line being drawn is close enough to being vertical to snap to vertical
 				//VERTICAL SNAPPING
-				if(Math.abs(e.getX()-currentLine.getStartX())>SNAP) {
+				if(Math.abs(e.getX()-currentLine.getStart().getX())>SNAP) {
 					
 					//if the line is too far from being vertical, do not snap
-					currentLine.setEndX(e.getX());
+					//This modifies the End Point object
+					currentLine.getEnd().setX(e.getX());
+					//This modifies the end point of the Line object
+					currentLine.getLine().setEndX(e.getX());
+					
 					
 				}
 				
 				else {
 					
 					//if the line is close enough to vertical, snap to vertical
-					currentLine.setEndX(currentLine.getStartX());
+					currentLine.getEnd().setX(currentLine.getStart().getX());
+					currentLine.getLine().setEndX(currentLine.getStart().getX());
 					
 				}
 				
 				//HORIZONTAL SNAPPING
-				if(Math.abs(e.getY()-currentLine.getStartY())>SNAP){
+				if(Math.abs(e.getY()-currentLine.getStart().getY())>SNAP){
 					
-					currentLine.setEndY(e.getY());
+					currentLine.getEnd().setY(e.getY());
+					currentLine.getLine().setEndY(e.getY());
+					
 				}
 				
 				else {
 					
 					//if the line is close enough to horizontal, snap to horizontal
-					currentLine.setEndY(currentLine.getStartY());
+					currentLine.getEnd().setY(currentLine.getStart().getY());
+					currentLine.getLine().setEndY(currentLine.getStart().getY());
 				}
 				
-				end = new Point(currentLine.getEndX(),currentLine.getEndY());
+				end = new Point(currentLine.getEnd().getX(),currentLine.getEnd().getY());
 				
 				//This block of code is to check if the cursor is near any point that we can snap to
 				double pointDist = 1_000_000_000;
@@ -622,8 +632,11 @@ public class Main extends Application {
 					
 					if(end.getDistance(points.get(i))<SNAP&&(end.getDistance(points.get(i)) < pointDist)) {
 						
-						currentLine.setEndX(points.get(i).getX());
-						currentLine.setEndY(points.get(i).getY());
+						currentLine.getEnd().setX(points.get(i).getX());
+						currentLine.getEnd().setY(points.get(i).getY());
+
+						currentLine.getLine().setEndX(points.get(i).getX());
+						currentLine.getLine().setEndY(points.get(i).getY());
 						nearPoint = true;
 			
 					}
@@ -633,18 +646,21 @@ public class Main extends Application {
 				//this block should make the end point snap to an axis if no snap points are nearby
 				//but it unintentionally causes the line to snap to an axis when it should be snapping to a point
 				//x-axis snap
+				
 				if(end.getDistance(new Point (end.getX(),HEIGHT/2))<SNAP&&!nearPoint) {
 					
-					 currentLine.setEndY(HEIGHT/2);
+					 currentLine.getEnd().setY(HEIGHT/2);
+					 currentLine.getLine().setEndY(HEIGHT/2);
 				}
 				//Y-axis snap
 				if(end.getDistance(new Point (WIDTH/2,end.getY()))<SNAP&&!nearPoint) {
 								
-					currentLine.setEndX(WIDTH/2);
+					currentLine.getEnd().setX(WIDTH/2);
+					currentLine.getLine().setEndX(WIDTH/2);
 				}
 				
 				//declare the end point again in case it was changed
-				end = new Point(currentLine.getEndX(),currentLine.getEndY());
+				end = new Point(currentLine.getEnd().getX(),currentLine.getEnd().getY());
 				
 				dimVal = start.getDistance(end);
 				dimVal = round(dimVal);
@@ -671,9 +687,7 @@ public class Main extends Application {
 	 *
 	 */
 	public class MouseReleaseEventHandler implements EventHandler<MouseEvent>{
-		
-		private Point endPoint;
-		private Circle endPointCircle;
+
 		@Override
 		public void handle(MouseEvent e) {
 			
@@ -681,20 +695,10 @@ public class Main extends Application {
 				
 				//we only want to add a point to the points Array once the mouse is 
 				//released and the line drawing is complete
-				Line currentLine = lines.get(lines.size()-1);
+				DraftLine currentLine = lines.get(lines.size()-1);
 				
-				endPoint = new Point(currentLine.getEndX(),currentLine.getEndY());
-				endPoint.setCircle(endPoint.getX(),endPoint.getY());
+				points.add(currentLine.getEnd());
 				
-				endPoint.getCircle().setOnMousePressed(mpeh);
-				endPoint.getCircle().setOnMouseDragged(mdeh);
-				endPoint.getCircle().setOnMouseReleased(mreh);
-				
-				points.add(endPoint);
-				
-				addToShapes(endPoint.getCircle());
-
-				drawingBoard.getChildren().add(endPoint.getCircle());
 				e.consume();
 			}
 		}
