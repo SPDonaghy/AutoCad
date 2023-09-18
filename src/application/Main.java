@@ -42,7 +42,7 @@ public class Main extends Application {
 	private Rectangle background;
 	private Line vertical,horizontal;
 	private BorderPane root;
-	private Text dimension;
+	
 	
 	//Object Lists
 	private ArrayList<Shape> shapes;
@@ -160,17 +160,7 @@ public class Main extends Application {
 			//Delete Function
 			scene.setOnKeyPressed(e -> {
 				if ((e.getCode() == KeyCode.DELETE)||(e.getCode() == KeyCode.BACK_SPACE)) {
-					/*
-					for(int i=0;i<shapes.size();i++){
-
-						if(shapes.get(i) instanceof DraftLine && ((DraftLine) shapes.get(i)).isSelected()){
-								
-							drawingBoard.getChildren().remove(shapes.get(i));
-							shapes.remove(i);
-
-						}
-					} 
-					*/
+					
 					for(int i=0;i<lines.size();i++){
 
 						if(lines.get(i) instanceof DraftLine && ((DraftLine) lines.get(i)).isSelected()){
@@ -298,6 +288,7 @@ public class Main extends Application {
 		private double angle;
 		private boolean isSelected;
 		private Color color;
+		private Text lengthDim, angleDim;
 
 		public DraftLine(double startX, double startY, double endX, double endY){
 			
@@ -310,9 +301,29 @@ public class Main extends Application {
 			this.line.setStroke(LINE_COLOR);
 			this.line.setStrokeWidth(STROKE_WIDTH);
 
-			this.getChildren().addAll(start,end,line);
+			this.lengthDim = new Text("");
+			this.lengthDim.setStroke(LINE_COLOR);
+			
+
+			this.getChildren().addAll(start,end,line,lengthDim);
 		}
 		
+		public Text getLengthDim() {
+			return lengthDim;
+		}
+
+		public void setLengthDim(Text lengthDim) {
+			this.lengthDim = lengthDim;
+		}
+
+		public Text getAngleDim() {
+			return angleDim;
+		}
+
+		public void setAngleDim(Text angleDim) {
+			this.angleDim = angleDim;
+		}
+
 		public Point getStart() {
 			return this.start;
 		}
@@ -376,6 +387,28 @@ public class Main extends Application {
 		}
 	}
 	//Methods
+
+	public boolean draftLineSelected(){
+		boolean lineSelected = false;
+
+		for(DraftLine line:lines){
+			if(line.isSelected){
+				lineSelected = true;
+			}	
+		}
+
+		return lineSelected;
+	}
+
+	public DraftLine getSelectedDraftLine(){
+
+		for(DraftLine line:lines){
+			if(line.isSelected){
+				return line;
+			}
+		}
+		return null;
+	}
 	/**
 	 * This method is used to add any shapes to the Array List shapes
 	 * When a shape is added, an event listener is also added to the shape to check if the mouse is hovering over the shape
@@ -506,11 +539,6 @@ public class Main extends Application {
 				//add the line to the drawing
 				drawingBoard.getChildren().add(draftLine);
 				
-				//add the line dimension to the drawing
-				dimension = new Text("");
-				dimension.setStroke(LINE_COLOR);
-				drawingBoard.getChildren().add(dimension);
-				
 				//the user should also be able to start a new line when they have clicked on a previously drawn line
 				draftLine.setOnMousePressed(mpeh);
 				draftLine.setOnMouseDragged(mdeh);
@@ -533,11 +561,13 @@ public class Main extends Application {
 					selectedLine.setSelected(true);
 					selectedLine.getStart().setSelected(true);
 					selectedLine.getEnd().setSelected(true);
+					System.out.println("line selected");
 					e.consume();
 				}
 				else if(e.getSource() instanceof Point){
 					selectedPoint = (Point) e.getSource();
 					selectedPoint.setSelected(true);
+					System.out.println("point selected");
 					e.consume();
 				}
 
@@ -571,9 +601,20 @@ public class Main extends Application {
 		private DraftLine currentLine;
 		private Point start,end;
 		private double dimVal;
+
+		//Useful Variables
+		private double dragDeltaX, dragDeltaY;
+		private double pressPointX, pressPointY;
+
 		@Override
 		public void handle(MouseEvent e) {
 			
+			dragDeltaX = e.getX() - pressPointX;
+			dragDeltaY = e.getY() - pressPointY;
+			
+			pressPointX = e.getX();
+			pressPointY = e.getY();
+
 			boolean nearPoint = false;
 			if(line.isSelected()) {
 				
@@ -666,19 +707,44 @@ public class Main extends Application {
 				dimVal = round(dimVal);
 				
 				//set the position of the dimension value halfway along the line
-				dimension.setLayoutX((start.getX()+end.getX())/2+dimPad);
-				dimension.setLayoutY((start.getY()+end.getY())/2+dimPad);
-				dimension.setText(""+dimVal);
-				
-				
+				currentLine.getLengthDim().setLayoutX((start.getX()+end.getX())/2+dimPad);
+				currentLine.getLengthDim().setLayoutY((start.getY()+end.getY())/2+dimPad);
+				currentLine.getLengthDim().setText(""+dimVal);	
 			}
-			
-			
-		}
-		
 
-			
-		
+			if(select.isSelected()){
+
+				Point eventPoint = new Point(e.getX(),e.getY());
+
+				if(draftLineSelected()){
+
+					DraftLine selectedLine = getSelectedDraftLine();
+
+					//if the drag event location is not close to either end point, the line will be dragged/moved
+					if(eventPoint.getDistance(selectedLine.getEnd()) > SNAP && eventPoint.getDistance(selectedLine.getStart()) > SNAP ){
+						
+						double startX = selectedLine.getStart().getX();
+						double startY = selectedLine.getStart().getY();
+
+						double endX = selectedLine.getEnd().getX();
+						double endY = selectedLine.getEnd().getY();
+
+						selectedLine.getStart().setX(startX + dragDeltaX);
+						selectedLine.getLine().setStartX(startX + dragDeltaX);
+
+						selectedLine.getStart().setY(startY + dragDeltaY);
+						selectedLine.getLine().setStartY(startY + dragDeltaY);
+					
+						selectedLine.getEnd().setX(endX + dragDeltaX);
+						selectedLine.getLine().setEndX(endX + dragDeltaX);
+
+						selectedLine.getEnd().setY(endY + dragDeltaY);
+						selectedLine.getLine().setEndY(endY + dragDeltaY);
+
+					}
+				}
+			}
+		}
 	}
 	/**
 	 * Mouse Release Event Handler
